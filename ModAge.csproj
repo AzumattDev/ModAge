@@ -115,11 +115,11 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="LocalizationManager.cs"/>
-        <Compile Include="ModAgeUI.cs" />
         <Compile Include="Patches.cs" />
         <Compile Include="Plugin.cs"/>
         <Compile Include="Properties\AssemblyInfo.cs"/>
+        <Compile Include="Utils\Managers\LocalizationManager.cs" />
+        <Compile Include="Utils\ModAgeUI.cs" />
         <Compile Include="Utils\ThunderstoreInfo.cs" />
         <Compile Include="Utils\Utilities.cs" />
     </ItemGroup>

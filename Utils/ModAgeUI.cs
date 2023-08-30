@@ -6,6 +6,7 @@ namespace ModAge
 {
     public class ModAgeUI : MonoBehaviour
     {
+        // This class has a lot of bullshit about the UI I might not need. I'll keep it for now, in case I want to expand on the UI later or add configs
         public Canvas canvas;
         public RectTransform root;
         public Image BackgroundBack;
@@ -55,17 +56,5 @@ namespace ModAge
         public Image contentScrollbarImage;
         public RectTransform contentScrollbarHandle;
         public Image contentScrollbarHandleImage;
-
-        void Awake()
-        {
-        }
-
-        void Start()
-        {
-        }
-
-        void Update()
-        {
-        }
     }
 }
