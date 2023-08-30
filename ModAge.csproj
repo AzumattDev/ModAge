@@ -76,9 +76,6 @@
         <Reference Include="BepInEx">
             <HintPath>$(BepInExPath)\core\BepInEx.dll</HintPath>
         </Reference>
-        <Reference Include="ServerSync">
-            <HintPath>Libs\ServerSync.dll</HintPath>
-        </Reference>
         <Reference Include="System"/>
         <Reference Include="System.Core"/>
         <Reference Include="System.Data"/>
@@ -120,24 +117,22 @@
     <ItemGroup>
         <Compile Include="LocalizationManager.cs"/>
         <Compile Include="ModAgeUI.cs" />
+        <Compile Include="Patches.cs" />
         <Compile Include="Plugin.cs"/>
         <Compile Include="Properties\AssemblyInfo.cs"/>
-        <Compile Include="Utilities.cs" />
-        <Compile Include="VersionHandshake.cs"/>
+        <Compile Include="Utils\ThunderstoreInfo.cs" />
+        <Compile Include="Utils\Utilities.cs" />
     </ItemGroup>
     <ItemGroup>
         <Content Include=".gitignore"/>
         <Content Include="environment.props"/>
         <Content Include="ILRepack.targets"/>
-        <Content Include="Libs\ServerSync.dll">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </Content>
         <Content Include="LICENSE.txt"/>
-        <EmbeddedResource Include="modage" />
         <Content Include="README.md"/>
         <Content Include="Thunderstore\CHANGELOG.md"/>
         <Content Include="Thunderstore\icon.png"/>
         <Content Include="Thunderstore\manifest.json"/>
+        <EmbeddedResource Include="asset\modage" />
         <EmbeddedResource Include="translations\English.yml"/>
         <Content Include="UpdateManifest.ps1"/>
     </ItemGroup>
