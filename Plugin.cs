@@ -145,7 +145,8 @@ namespace ModAge
                 {
                     string? latestVersion = matchedMod.versions[0].version_number; // Assuming versions are sorted with latest first.
                     UpdateUI(pluginInfo.Metadata.Name, pluginInfo.Metadata.Version.ToString(), latestVersion, matchedMod);
-                    Debug.Log($"Match found for {modNameInThunderstoreFormat}");
+                    //Debug.Log($"Match found for {modNameInThunderstoreFormat}");
+                    Debug.Log($"Match found for {modNameInThunderstoreFormat} version {Utilities.ParseVersion(pluginInfo.Metadata.Version + ".0")}");
                 }
                 else
                 {
@@ -171,12 +172,10 @@ namespace ModAge
         {
             System.Version localVer = Utilities.ParseVersion(localVersion);
             System.Version onlineVer = Utilities.ParseVersion(latestVersion);
-
-            if (onlineVer == localVer || Utilities.ParseVersion(onlineVer + ".0") == localVer) // If both versions are the same, do nothing.
+            if (onlineVer == localVer || Utilities.ParseVersion(localVersion + ".0") == onlineVer) // If both versions are the same, do nothing.
             {
                 return;
             }
-
             // Instantiate the item without setting the parent
             RectTransform? item = Instantiate(modAgeUIcomp.ModRowPlaceholder, modAgeUIcomp.contentList.transform, false);
             item.gameObject.SetActive(true);
@@ -200,9 +199,22 @@ namespace ModAge
             modLinkButtonText.text = $"{packageInfo.name} on Thunderstore";
             modLinkButton.onClick.AddListener(() => Application.OpenURL(packageInfo.package_url));
 
-            DateTime dt = DateTime.Parse(packageInfo.date_updated, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+            // Get the creation date where the packageInfo version is equal to the local version. If it's not found, use the first version.
+            VersionInfo? versionInfo = packageInfo.versions?.FirstOrDefault(x => x.version_number == localVersion) ?? packageInfo.versions?[0];
+            if (versionInfo == null)
+            {
+                Debug.LogError($"No version info found for {packageInfo.name}");
+                return;
+            }
+            
+            
+            DateTime dt = DateTime.Parse(versionInfo.date_created, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
             string formattedDate = dt.ToString("MMMM dd, yyyy hh:mm:ss tt", CultureInfo.InvariantCulture);
-            inputPlaceholder.text = $"Last Updated:\n {formattedDate}";
+
+            // If dt is less than August 22nd 2023 at 8:30AM, then the mod placeholder text should say it's older than the Hildir Update.
+            inputPlaceholder.text = dt < new DateTime(2023, 8, 22, 8, 30, 0) 
+                ? $"Last Updated:\n {formattedDate}\n<color=red>This mod is older than the Hildir Update!</color>" 
+                : $"Last Updated:\n {formattedDate}\n<color=green>This mod is newer than the Hildir Update!</color>";
             StartCoroutine(LoadSpriteFromURL(packageInfo.versions?[0].icon, (sprite) =>
             {
                 if (sprite != null)
@@ -359,19 +371,15 @@ namespace ModAge
             ModAgePlugin.modAgeUIObject.transform.SetParent(__instance.m_mainMenu.transform, false);
             try
             {
-                var menuList = __instance.m_mainMenu.transform.Find("MenuList");
+                var menuList = Utils.FindChild(__instance.m_mainMenu.transform, "MenuEntries");
                 CreateMenu(menuList);
             }
             catch (Exception ex)
             {
-                ModAgePlugin.ModAgeLogger.LogWarning($"Exception caught while creating the Mod Settings: {ex}");
+                ModAgePlugin.ModAgeLogger.LogWarning($"Exception caught while creating the Mod Age Menu Option: {ex}");
             }
         }
 
-        /// <summary>
-        ///     Create our own menu list entry when mod config is available
-        /// </summary>
-        /// <param name="menuList"></param>
         private static void CreateMenu(Transform menuList)
         {
             ModAgePlugin.ModAgeLogger.LogDebug("Instantiating Mod Age");
@@ -384,16 +392,14 @@ namespace ModAge
                     menuList.GetChild(i).name != "ModAge" &&
                     menuList.GetChild(i).TryGetComponent<Button>(out var menuButton))
                 {
-                    ModAgePlugin.ModAgeLogger.LogError("Found a button with the name: " + menuList.GetChild(i).name);
                     mainMenuButtons.Add(menuButton);
                 }
 
                 if (menuList.GetChild(i).name == "Settings")
                 {
-                    ModAgePlugin.ModAgeLogger.LogError("Found Settings");
                     Transform modSettings = Object.Instantiate(menuList.GetChild(i), menuList);
                     modSettings.name = "ModAge";
-                    modSettings.GetComponentInChildren<Text>().text = Localization.instance.Localize("$menu_title");
+                    modSettings.GetComponentInChildren<TextMeshProUGUI>().text = Localization.instance.Localize("$menu_title");
                     Button modSettingsButton = modSettings.GetComponent<Button>();
                     for (int j = 0; j < modSettingsButton.onClick.GetPersistentEventCount(); ++j)
                     {
@@ -405,7 +411,7 @@ namespace ModAge
                     {
                         try
                         {
-                            ModAgePlugin.modAgeUI.SetActive(true);
+                            ModAgePlugin.modAgeUI.SetActive(!ModAgePlugin.modAgeUI.activeSelf);
                         }
                         catch (Exception ex)
                         {
