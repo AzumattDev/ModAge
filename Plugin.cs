@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -47,6 +48,7 @@ namespace ModAge
         internal static ModAgePlugin Instance;
         private Coroutine? modcheckerCoroutine;
         private List<PackageInfo>? allPackagesInfo = null;
+        internal bool shouldCompareMods = false;
 
         public enum Toggle
         {
@@ -71,7 +73,7 @@ namespace ModAge
             modAgeUIcomp = instantiatedObject.GetComponent<ModAgeUI>();
             modAgeUI.transform.SetParent(modAgeUIObject.transform);
             DontDestroyOnLoad(modAgeUIObject);
-
+            modcheckerCoroutine = StartCoroutine(CheckModUpdates());
 
             Assembly assembly = Assembly.GetExecutingAssembly();
             _harmony.PatchAll(assembly);
@@ -80,7 +82,10 @@ namespace ModAge
 
         public void Start()
         {
-            modcheckerCoroutine = StartCoroutine(CheckModUpdates());
+            if (shouldCompareMods)
+            {
+                CompareLocalModsToThunderstore();
+            }
         }
 
 
@@ -105,8 +110,6 @@ namespace ModAge
             assetBundle?.Unload(false);
         }
 
-        private bool dataFetched = false;
-
         private IEnumerator CheckModUpdates()
         {
             if (allPackagesInfo == null)
@@ -115,7 +118,7 @@ namespace ModAge
                 {
                     if (result != null)
                     {
-                        CompareLocalModsToThunderstore();
+                        shouldCompareMods = true;
                     }
                 });
             }
@@ -131,15 +134,26 @@ namespace ModAge
             foreach (var pluginInfo in plugins.Values)
             {
                 string modNameInThunderstoreFormat = ConvertToThunderstoreFormat(pluginInfo.Metadata.Name);
-                var matchedMod = allPackagesInfo?.FirstOrDefault(x => x.name == modNameInThunderstoreFormat);
-                var latestVersion = matchedMod?.versions?.FirstOrDefault()?.version_number;
 
-                if (latestVersion != null)
+                // Find the mod using the converted name.
+                PackageInfo? matchedMod = allPackagesInfo?.FirstOrDefault(x => x.name.Equals(modNameInThunderstoreFormat, StringComparison.OrdinalIgnoreCase));
+                Debug.Log($"Original Mod Name: {pluginInfo.Metadata.Name}");
+                Debug.Log($"Converted Mod Name: {modNameInThunderstoreFormat}");
+
+                // If the mod is found and has versions, get the latest one.
+                if (matchedMod is { versions.Count: > 0 })
                 {
-                    UpdateUI(pluginInfo.Metadata.Name, pluginInfo.Metadata.Version.ToString(), latestVersion);
+                    string? latestVersion = matchedMod.versions[0].version_number; // Assuming versions are sorted with latest first.
+                    UpdateUI(pluginInfo.Metadata.Name, pluginInfo.Metadata.Version.ToString(), latestVersion, matchedMod);
+                    Debug.Log($"Match found for {modNameInThunderstoreFormat}");
+                }
+                else
+                {
+                    Debug.LogWarning($"No match found for {modNameInThunderstoreFormat}");
                 }
             }
         }
+
 
         private string ConvertToThunderstoreFormat(string modName)
         {
@@ -153,35 +167,62 @@ namespace ModAge
         }
 
 
-        private void UpdateUI(string modName, string localVersion, string latestVersion)
+        private void UpdateUI(string modName, string? localVersion, string? latestVersion, PackageInfo packageInfo)
         {
+            System.Version localVer = Utilities.ParseVersion(localVersion);
+            System.Version onlineVer = Utilities.ParseVersion(latestVersion);
+
+            if (onlineVer == localVer || Utilities.ParseVersion(onlineVer + ".0") == localVer) // If both versions are the same, do nothing.
+            {
+                return;
+            }
+
             // Instantiate the item without setting the parent
-            var item = Instantiate(modAgeUIcomp.ModRowPlaceholder);
+            RectTransform? item = Instantiate(modAgeUIcomp.ModRowPlaceholder, modAgeUIcomp.contentList.transform, false);
+            item.gameObject.SetActive(true);
 
-            // Set the parent after instantiation
-            item.transform.SetParent(modAgeUIcomp.contentList.transform, false); // The 'false' argument ensures the object's local coordinates aren't modified during parenting
+            Transform? naming = Utils.FindChild(item.transform, "Naming");
+            Transform? rightCol = Utils.FindChild(item.transform, "Right column");
 
-            var naming = Utils.FindChild(item.transform, "Naming");
+            TextMeshProUGUI? modNameText = Utils.FindChild(naming.transform, "ModName").GetComponent<TextMeshProUGUI>();
+            TextMeshProUGUI? modVersionText = Utils.FindChild(naming.transform, "ModVersion").GetComponent<TextMeshProUGUI>();
+            TextMeshProUGUI? modStatusText = Utils.FindChild(naming.transform, "ModStatus").GetComponent<TextMeshProUGUI>();
+            TextMeshProUGUI? modLinkButtonText = Utils.FindChild(rightCol.transform, "ModLinkButtonText").GetComponent<TextMeshProUGUI>();
+            Button? modLinkButton = Utils.FindChild(rightCol.transform, "ModLinkButton").GetComponent<Button>();
+            TextMeshProUGUI? inputPlaceholder = Utils.FindChild(rightCol.transform, "Placeholder").GetComponent<TextMeshProUGUI>();
+            Image? modIcon = Utils.FindChild(item.transform, "ModIcon").GetComponent<Image>();
 
-            var modNameText = Utils.FindChild(naming.transform, "ModName").GetComponent<TextMeshProUGUI>();
-            var modVersionText = Utils.FindChild(naming.transform, "ModVersion").GetComponent<TextMeshProUGUI>();
-            var modStatusText = Utils.FindChild(naming.transform, "ModStatus").GetComponent<TextMeshProUGUI>();
+            modNameText.text = packageInfo.full_name;
+            modVersionText.text = $"Installed ({localVersion})";
+            modStatusText.text = onlineVer > localVer
+                ? $"<color=red>Update available: {onlineVer}</color>"
+                : $"Test version: Live Version is {onlineVer}"; // onlineVer < localVer
+            modLinkButtonText.text = $"{packageInfo.name} on Thunderstore";
+            modLinkButton.onClick.AddListener(() => Application.OpenURL(packageInfo.package_url));
 
-            modNameText.text = modName;
-            modVersionText.text = localVersion;
-            modStatusText.text = (localVersion == latestVersion) ? "Up to date" : "Update available";
+            DateTime dt = DateTime.Parse(packageInfo.date_updated, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+            string formattedDate = dt.ToString("MMMM dd, yyyy hh:mm:ss tt", CultureInfo.InvariantCulture);
+            inputPlaceholder.text = $"Last Updated:\n {formattedDate}";
+            StartCoroutine(LoadSpriteFromURL(packageInfo.versions?[0].icon, (sprite) =>
+            {
+                if (sprite != null)
+                {
+                    modIcon.sprite = sprite;
+                }
+            }));
+            modAgeUI.SetActive(false);
         }
 
 
         private IEnumerator GetAllModsFromThunderstore(System.Action<List<PackageInfo>?> callback)
         {
-            string url = $"https://thunderstore.io/api/v1/package/";
+            string url = $"https://thunderstore.io/c/valheim/api/v1/package/";
             using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
             {
                 webRequest.SetRequestHeader("Accept-Encoding", "gzip");
                 yield return webRequest.SendWebRequest();
 
-                if (webRequest.result == UnityWebRequest.Result.ConnectionError || webRequest.result == UnityWebRequest.Result.ProtocolError)
+                if (webRequest.result is UnityWebRequest.Result.ConnectionError or UnityWebRequest.Result.ProtocolError)
                 {
                     Debug.LogError(webRequest.error);
                     callback(null);
@@ -194,6 +235,30 @@ namespace ModAge
                     allPackagesInfo = deserializer.Deserialize<List<PackageInfo>>(jsonData);
                     callback(allPackagesInfo);
                 }
+            }
+        }
+
+        IEnumerator LoadSpriteFromURL(string? imageURL, Action<Sprite> callback)
+        {
+            if (imageURL == null)
+            {
+                callback(null);
+                yield break;
+            }
+
+            UnityWebRequest www = UnityWebRequestTexture.GetTexture(imageURL);
+            yield return www.SendWebRequest();
+
+            if (www.result == UnityWebRequest.Result.ConnectionError || www.result == UnityWebRequest.Result.ProtocolError)
+            {
+                Debug.LogError("Error while fetching image: " + www.error);
+                callback(null);
+            }
+            else
+            {
+                Texture2D texture = DownloadHandlerTexture.GetContent(www);
+                Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+                callback(sprite);
             }
         }
 
@@ -313,17 +378,19 @@ namespace ModAge
 
             var settingsFound = false;
             var mainMenuButtons = new List<Button>();
-            for (int i = 0; i < menuList.childCount; i++)
+            for (int i = 0; i < menuList.childCount; ++i)
             {
                 if (menuList.GetChild(i).gameObject.activeInHierarchy &&
                     menuList.GetChild(i).name != "ModAge" &&
                     menuList.GetChild(i).TryGetComponent<Button>(out var menuButton))
                 {
+                    ModAgePlugin.ModAgeLogger.LogError("Found a button with the name: " + menuList.GetChild(i).name);
                     mainMenuButtons.Add(menuButton);
                 }
 
                 if (menuList.GetChild(i).name == "Settings")
                 {
+                    ModAgePlugin.ModAgeLogger.LogError("Found Settings");
                     Transform modSettings = Object.Instantiate(menuList.GetChild(i), menuList);
                     modSettings.name = "ModAge";
                     modSettings.GetComponentInChildren<Text>().text = Localization.instance.Localize("$menu_title");
@@ -338,7 +405,7 @@ namespace ModAge
                     {
                         try
                         {
-                            // ModAgePlugin.Instance.StartCoroutine(CreateWindow(menuList));
+                            ModAgePlugin.modAgeUI.SetActive(true);
                         }
                         catch (Exception ex)
                         {
