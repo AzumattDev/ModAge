@@ -41,7 +41,7 @@ public class Utilities
     {
         if (imageURL == null)
         {
-            callback(null);
+            callback(null!);
             yield break;
         }
 
@@ -85,6 +85,30 @@ public class Utilities
         }
     }
 
+    private static IEnumerator GetAllModsModVersionCheckBot(System.Action<Dictionary<string, PreparedPackageInfo>?> callback)
+    {
+        string url = $"https://mod-version-check.eu/api/experimental/prepared-mods";
+        using (UnityWebRequest webRequest = UnityWebRequest.Get(url))
+        {
+            webRequest.SetRequestHeader("Accept-Encoding", "gzip");
+            yield return webRequest.SendWebRequest();
+
+            if (webRequest.result is UnityWebRequest.Result.ConnectionError or UnityWebRequest.Result.ProtocolError)
+            {
+                Debug.LogError(webRequest.error);
+                callback(null);
+            }
+            else
+            {
+                string jsonData = webRequest.downloadHandler.text;
+
+                IDeserializer deserializer = new DeserializerBuilder().Build();
+                ModAgePlugin.allPreparedPackagesInfo = deserializer.Deserialize<Dictionary<string, PreparedPackageInfo>>(jsonData);
+                callback(ModAgePlugin.allPreparedPackagesInfo);
+            }
+        }
+    }
+
     internal static string ConvertToThunderstoreFormat(string modName)
     {
         // Replace spaces with underscores
@@ -98,7 +122,7 @@ public class Utilities
 
     internal static IEnumerator CheckModUpdates()
     {
-        if (ModAgePlugin.allPackagesInfo == null)
+        /*if (ModAgePlugin.allPackagesInfo == null)
         {
             yield return GetAllModsFromThunderstore((result) =>
             {
@@ -111,6 +135,21 @@ public class Utilities
         else
         {
             CompareLocalModsToThunderstore();
+        }*/
+
+        if (ModAgePlugin.allPreparedPackagesInfo == null)
+        {
+            yield return GetAllModsModVersionCheckBot((result) =>
+            {
+                if (result != null)
+                {
+                    ModAgePlugin.CanCompareMods = true;
+                }
+            });
+        }
+        else
+        {
+            CompareLocalModsToPreparedPackage();
         }
     }
 
@@ -139,6 +178,38 @@ public class Utilities
                 ModAgePlugin.ModAgeLogger.LogWarning($"No match found for {modNameInThunderstoreFormat}");
             }
         }
+
+        ModAgePlugin.modAgeUIFinal.SetActive(false);
+    }
+
+    internal static void CompareLocalModsToPreparedPackage()
+    {
+        var plugins = Chainloader.PluginInfos;
+        foreach (var pluginInfo in plugins.Values)
+        {
+            string modNameInThunderstoreFormat = pluginInfo.Metadata.Name.ToLower();
+
+            // Find the mod using the converted name.
+            KeyValuePair<string, PreparedPackageInfo>? matchedMod = ModAgePlugin.allPreparedPackagesInfo?.FirstOrDefault(x => x.Value.clean_name != null && x.Value.clean_name.Equals(modNameInThunderstoreFormat, StringComparison.OrdinalIgnoreCase));
+            ModAgePlugin.ModAgeLogger.LogDebug($"Original Mod Name: {pluginInfo.Metadata.Name}");
+            ModAgePlugin.ModAgeLogger.LogDebug($"Converted Mod Name: {modNameInThunderstoreFormat}");
+
+            // If the mod is found and has versions, get the latest one.
+            if (matchedMod?.Value != null)
+            {
+                if (matchedMod.Value.Value.version.Length > 0)
+                {
+                    string? latestVersion = matchedMod.Value.Value.version; // Assuming versions are sorted with latest first.
+                    UpdateUIPrepackaged(pluginInfo.Metadata.Name, pluginInfo.Metadata.Version.ToString(), latestVersion, matchedMod);
+                    ModAgePlugin.ModAgeLogger.LogDebug($"Match found for {modNameInThunderstoreFormat}");
+                }
+                else
+                {
+                    ModAgePlugin.ModAgeLogger.LogWarning($"No match found for {modNameInThunderstoreFormat}");
+                }
+            }
+        }
+
         ModAgePlugin.modAgeUIFinal.SetActive(false);
     }
 
@@ -192,6 +263,68 @@ public class Utilities
             ? $"Last Updated:\n {formattedDate}\n<color=red>This mod is older than the Hildir Update!</color>"
             : $"Last Updated:\n {formattedDate}\n<color=green>This mod is newer than the Hildir Update!</color>";
         ModAgePlugin.Instance.StartCoroutine(Utilities.LoadSpriteFromURL(packageInfo.versions?[0].icon, (sprite) =>
+        {
+            if (sprite != null)
+            {
+                modIcon.sprite = sprite;
+            }
+        }));
+    }
+
+    private static void UpdateUIPrepackaged(string modName, string? localVersion, string? latestVersion, KeyValuePair<string, PreparedPackageInfo>? packageInfo)
+    {
+        System.Version localVer = ParseVersion(localVersion);
+        System.Version onlineVer = ParseVersion(latestVersion);
+        // if (onlineVer == localVer || ParseVersion(localVersion + ".0") == onlineVer) // If both versions are the same, do nothing.
+        // {
+        //     return;
+        // }
+
+        // Instantiate the item without setting the parent
+        RectTransform? item = Object.Instantiate(ModAgePlugin.modAgeUIcomp.ModRowPlaceholder, ModAgePlugin.modAgeUIcomp.contentList.transform, false);
+        item.gameObject.SetActive(true);
+
+        Transform? naming = Utils.FindChild(item.transform, "Naming");
+        Transform? rightCol = Utils.FindChild(item.transform, "Right column");
+
+        TextMeshProUGUI? modNameText = Utils.FindChild(naming.transform, "ModName").GetComponent<TextMeshProUGUI>();
+        TextMeshProUGUI? modVersionText = Utils.FindChild(naming.transform, "ModVersion").GetComponent<TextMeshProUGUI>();
+        TextMeshProUGUI? modStatusText = Utils.FindChild(naming.transform, "ModStatus").GetComponent<TextMeshProUGUI>();
+        TextMeshProUGUI? modLinkButtonText = Utils.FindChild(rightCol.transform, "ModLinkButtonText").GetComponent<TextMeshProUGUI>();
+        Button? modLinkButton = Utils.FindChild(rightCol.transform, "ModLinkButton").GetComponent<Button>();
+        TextMeshProUGUI? inputPlaceholder = Utils.FindChild(rightCol.transform, "Placeholder").GetComponent<TextMeshProUGUI>();
+        Image? modIcon = Utils.FindChild(item.transform, "ModIcon").GetComponent<Image>();
+
+        modNameText.text = packageInfo?.Value.name;
+        modVersionText.text = $"Installed ({localVersion})";
+        string text = string.Empty;
+        if (onlineVer > localVer)
+        {
+            text = $"<color=red>Update available: {onlineVer}</color>";
+        }
+        else if (onlineVer == localVer)
+        {
+            text = $"<color=green>On the lastest available version: {onlineVer}</color>";
+        }
+        else
+        {
+            text = $"Test version: Live Version is {onlineVer}";
+        }
+
+        modStatusText.text = text; // onlineVer < localVer
+        modLinkButtonText.text = $"{packageInfo?.Value.name} on Thunderstore";
+        modLinkButton.onClick.AddListener(() => Application.OpenURL(packageInfo?.Value.urls?[0]));
+
+
+        DateTime dt = DateTime.Parse(packageInfo.Value.Value.updated, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+        string formattedDate = dt.ToString("MMMM dd, yyyy hh:mm:ss tt", CultureInfo.InvariantCulture);
+
+        // If dt is less than August 22nd 2023 at 8:30AM, then the mod placeholder text should say it's older than the Hildir Update.
+        inputPlaceholder.text = dt < new DateTime(2023, 8, 22, 8, 30, 0)
+            ? $"Last Updated:\n {formattedDate}\n<color=red>This mod is older than the Hildir Update!</color>"
+            : $"Last Updated:\n {formattedDate}\n<color=green>This mod is newer than the Hildir Update!</color>";
+        ModAgePlugin.ModAgeLogger.LogError($"{packageInfo?.Value.icon_url}");
+        ModAgePlugin.Instance.StartCoroutine(Utilities.LoadSpriteFromURL(packageInfo?.Value.icon_url, (sprite) =>
         {
             if (sprite != null)
             {

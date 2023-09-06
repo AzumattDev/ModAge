@@ -24,6 +24,7 @@ namespace ModAge
         internal static ModAgePlugin Instance;
         private Coroutine? modcheckerCoroutine;
         internal static List<PackageInfo>? allPackagesInfo = null;
+        internal static Dictionary<string, PreparedPackageInfo>? allPreparedPackagesInfo = null;
         internal static bool CanCompareMods = false;
 
         public void Awake()
@@ -46,7 +47,7 @@ namespace ModAge
         {
             if (CanCompareMods)
             {
-                Utilities.CompareLocalModsToThunderstore();
+                Utilities.CompareLocalModsToPreparedPackage();
             }
         }
 

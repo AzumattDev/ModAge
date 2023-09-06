@@ -36,3 +36,14 @@ public class PackageInfo
     public List<string>? categories { get; set; }
     public List<VersionInfo>? versions { get; set; }
 }
+
+public class PreparedPackageInfo
+{
+    public string? name { get; set; }
+    public string? clean_name { get; set; }
+    public string? icon_url { get; set; }
+    public string version { get; set; }
+    public string? updated { get; set; }
+    public bool? deprecated { get; set; }
+    public string[]? urls { get; set; }
+}
