@@ -261,33 +261,36 @@ public class Utilities
     {
         System.Version localVer = ParseVersion(localVersion);
         System.Version onlineVer = ParseVersion(latestVersion);
-        // if (onlineVer == localVer || ParseVersion(localVersion + ".0") == onlineVer) // If both versions are the same, do nothing.
-        // {
-        //     return;
-        // }
 
         DateTime dt = DateTime.Parse(packageInfo?.Value.updated, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
         string formattedDate = dt.ToString("MMMM dd, yyyy hh:mm:ss tt", CultureInfo.InvariantCulture);
         var isNotUpdated = dt < new DateTime(2023, 8, 22, 8, 30, 0);
-        // Instantiate the item without setting the parent
-        if (isNotUpdated)
+        if (isNotUpdated || onlineVer > localVer)
         {
             RectTransform? item = Object.Instantiate(ModAgePlugin.modAgeUIcomp.Placeholder, ModAgePlugin.modAgeUIcomp.contentList.transform, false);
             item.gameObject.SetActive(true);
             item.TryGetComponent<ModAgeUIPlaceholder>(out var placeholder);
             if (!placeholder || packageInfo == null) return;
 
-            placeholder.PlaceholderModName.text = $"{packageInfo?.Value.name} <color=#CC5500>by {packageInfo?.Value.icon_url?.Split('/').Last().Split('-')[0]}</color>";
-            placeholder.PlaceholderVersionInstalled.text = $"$modage_versioninstalled: {localVer}";
-            placeholder.PlaceholderVersionAvailable.text = $"Version Available: {onlineVer}";
-            placeholder.PlaceholderLastUpdated.text = $"Last Updated: {formattedDate}";
+            placeholder.PlaceholderModName.text = $"{packageInfo?.Value.name} <color=#DB8000>by {packageInfo?.Value.icon_url?.Split('/').Last().Split('-')[0]}</color>";
+            if (onlineVer > localVer)
+            {
+                placeholder.PlaceholderVersionInstalled.text = "$modage_anewversionavailable";
+                placeholder.PlaceholderVersionAvailable.text = $"<color=#CC5500>{onlineVer}</color>";
+            }
+            else
+            {
+                placeholder.PlaceholderVersionInstalled.text = $"$modage_versioninstalled: {localVer}";
+                placeholder.PlaceholderVersionAvailable.text = $"$modage_versionavailable: {onlineVer}";
+            }
+
+            placeholder.PlaceholderLastUpdated.text = $"$modage_lastupdated: {formattedDate}";
 
             placeholder.PlaceholderGameUpdatedBool.text = isNotUpdated
-                ? $"Updated for Hildir's Request: <color=#CC5500>No</color>"
-                : $"Updated for Hildir's Request: <color=#2b932e>Yes</color>";
-            placeholder.PlaceholderMoreInfoButton.GetComponentInChildren<TextMeshProUGUI>().text = $"More Information";
+                ? $"$modage_gameupdatemessage Hildir's Request: <color=#CC5500>$menu_no</color>"
+                : $"$modage_gameupdatemessage Hildir's Request: <color=#2b932e>$menu_yes</color>";
+            placeholder.PlaceholderMoreInfoButton.GetComponentInChildren<TextMeshProUGUI>().text = $"$modage_moreinformation";
             placeholder.PlaceholderMoreInfoButton.onClick.AddListener(() => Application.OpenURL(packageInfo?.Value.urls?[0]));
-            ModAgePlugin.ModAgeLogger.LogError($"{packageInfo?.Value.icon_url}");
             ModAgePlugin.Instance.StartCoroutine(Utilities.LoadSpriteFromURL(packageInfo?.Value.icon_url, (sprite) =>
             {
                 if (sprite != null)

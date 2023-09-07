@@ -5,9 +5,6 @@
 It will show you what version you have installed, the last time it updated, as well as the latest version available on https://valheim.thunderstore.io/. Mods listed in the UI are potential mods that you might need to remove due to age. Some mods can be older than the latest game update without issues. Keep that in mind and only use this as a guide in finding updates or bugs with your mods.
 ---
 
-![https://i.imgur.com/VgqH93a.png](https://i.imgur.com/VgqH93a.png)
-
-
 <details>
 <summary><b>Installation Instructions</b></summary>
 
