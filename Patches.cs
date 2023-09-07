@@ -18,7 +18,7 @@ static class FejdStartupLoadMainScenePatch
         {
             // Destroy it
             UnityEngine.Object.Destroy(ModAgePlugin.modAgeUIFinal);
-            ModAgePlugin.modAgeUIFinal = null; // Just in case
+            ModAgePlugin.modAgeUIFinal = null!; // Just in case
         }
     }
 }

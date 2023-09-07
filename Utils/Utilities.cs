@@ -51,7 +51,7 @@ public class Utilities
         if (www.result is UnityWebRequest.Result.ConnectionError or UnityWebRequest.Result.ProtocolError)
         {
             Debug.LogError("Error while fetching image: " + www.error);
-            callback(null);
+            callback(null!);
         }
         else
         {
@@ -161,7 +161,7 @@ public class Utilities
             string modNameInThunderstoreFormat = Utilities.ConvertToThunderstoreFormat(pluginInfo.Metadata.Name);
 
             // Find the mod using the converted name.
-            PackageInfo? matchedMod = ModAgePlugin.allPackagesInfo?.FirstOrDefault(x => x.name.Equals(modNameInThunderstoreFormat, StringComparison.OrdinalIgnoreCase));
+            PackageInfo? matchedMod = ModAgePlugin.allPackagesInfo?.FirstOrDefault(x => x.name != null && x.name.Equals(modNameInThunderstoreFormat, StringComparison.OrdinalIgnoreCase));
             ModAgePlugin.ModAgeLogger.LogDebug($"Original Mod Name: {pluginInfo.Metadata.Name}");
             ModAgePlugin.ModAgeLogger.LogDebug($"Converted Mod Name: {modNameInThunderstoreFormat}");
 
@@ -187,30 +187,16 @@ public class Utilities
         var plugins = Chainloader.PluginInfos;
         foreach (var pluginInfo in plugins.Values)
         {
-            string modNameInThunderstoreFormat = pluginInfo.Metadata.Name.ToLower();
-
             // Find the mod using the converted name.
-            KeyValuePair<string, PreparedPackageInfo>? matchedMod = ModAgePlugin.allPreparedPackagesInfo?.FirstOrDefault(x => x.Value.clean_name != null && x.Value.clean_name.Equals(modNameInThunderstoreFormat, StringComparison.OrdinalIgnoreCase));
-            ModAgePlugin.ModAgeLogger.LogDebug($"Original Mod Name: {pluginInfo.Metadata.Name}");
-            ModAgePlugin.ModAgeLogger.LogDebug($"Converted Mod Name: {modNameInThunderstoreFormat}");
+            KeyValuePair<string, PreparedPackageInfo>? matchedMod = ModAgePlugin.allPreparedPackagesInfo?.FirstOrDefault(
+                x => x.Value.clean_name != null && x.Value.clean_name.Equals(
+                    pluginInfo.Metadata.Name.ToLower(), StringComparison.OrdinalIgnoreCase));
 
             // If the mod is found and has versions, get the latest one.
-            if (matchedMod?.Value != null)
-            {
-                if (matchedMod.Value.Value.version.Length > 0)
-                {
-                    string? latestVersion = matchedMod.Value.Value.version; // Assuming versions are sorted with latest first.
-                    UpdateUIPrepackaged(pluginInfo.Metadata.Name, pluginInfo.Metadata.Version.ToString(), latestVersion, matchedMod);
-                    ModAgePlugin.ModAgeLogger.LogDebug($"Match found for {modNameInThunderstoreFormat}");
-                }
-                else
-                {
-                    ModAgePlugin.ModAgeLogger.LogWarning($"No match found for {modNameInThunderstoreFormat}");
-                }
-            }
+            if (matchedMod?.Value is not { version.Length: > 0 }) continue;
+            string? latestVersion = matchedMod.Value.Value.version; // Assuming versions are sorted with latest first.
+            UpdateUIPrepackaged(pluginInfo.Metadata.Name, pluginInfo.Metadata.Version.ToString(), latestVersion, matchedMod);
         }
-
-        ModAgePlugin.modAgeUIFinal.SetActive(false);
     }
 
 
@@ -224,7 +210,7 @@ public class Utilities
         }
 
         // Instantiate the item without setting the parent
-        RectTransform? item = Object.Instantiate(ModAgePlugin.modAgeUIcomp.ModRowPlaceholder, ModAgePlugin.modAgeUIcomp.contentList.transform, false);
+        RectTransform? item = Object.Instantiate(ModAgePlugin.modAgeUIcomp.Placeholder, ModAgePlugin.modAgeUIcomp.contentList.transform, false);
         item.gameObject.SetActive(true);
 
         Transform? naming = Utils.FindChild(item.transform, "Naming");
@@ -280,57 +266,36 @@ public class Utilities
         //     return;
         // }
 
-        // Instantiate the item without setting the parent
-        RectTransform? item = Object.Instantiate(ModAgePlugin.modAgeUIcomp.ModRowPlaceholder, ModAgePlugin.modAgeUIcomp.contentList.transform, false);
-        item.gameObject.SetActive(true);
-
-        Transform? naming = Utils.FindChild(item.transform, "Naming");
-        Transform? rightCol = Utils.FindChild(item.transform, "Right column");
-
-        TextMeshProUGUI? modNameText = Utils.FindChild(naming.transform, "ModName").GetComponent<TextMeshProUGUI>();
-        TextMeshProUGUI? modVersionText = Utils.FindChild(naming.transform, "ModVersion").GetComponent<TextMeshProUGUI>();
-        TextMeshProUGUI? modStatusText = Utils.FindChild(naming.transform, "ModStatus").GetComponent<TextMeshProUGUI>();
-        TextMeshProUGUI? modLinkButtonText = Utils.FindChild(rightCol.transform, "ModLinkButtonText").GetComponent<TextMeshProUGUI>();
-        Button? modLinkButton = Utils.FindChild(rightCol.transform, "ModLinkButton").GetComponent<Button>();
-        TextMeshProUGUI? inputPlaceholder = Utils.FindChild(rightCol.transform, "Placeholder").GetComponent<TextMeshProUGUI>();
-        Image? modIcon = Utils.FindChild(item.transform, "ModIcon").GetComponent<Image>();
-
-        modNameText.text = packageInfo?.Value.name;
-        modVersionText.text = $"Installed ({localVersion})";
-        string text = string.Empty;
-        if (onlineVer > localVer)
-        {
-            text = $"<color=red>Update available: {onlineVer}</color>";
-        }
-        else if (onlineVer == localVer)
-        {
-            text = $"<color=green>On the lastest available version: {onlineVer}</color>";
-        }
-        else
-        {
-            text = $"Test version: Live Version is {onlineVer}";
-        }
-
-        modStatusText.text = text; // onlineVer < localVer
-        modLinkButtonText.text = $"{packageInfo?.Value.name} on Thunderstore";
-        modLinkButton.onClick.AddListener(() => Application.OpenURL(packageInfo?.Value.urls?[0]));
-
-
-        DateTime dt = DateTime.Parse(packageInfo.Value.Value.updated, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+        DateTime dt = DateTime.Parse(packageInfo?.Value.updated, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
         string formattedDate = dt.ToString("MMMM dd, yyyy hh:mm:ss tt", CultureInfo.InvariantCulture);
-
-        // If dt is less than August 22nd 2023 at 8:30AM, then the mod placeholder text should say it's older than the Hildir Update.
-        inputPlaceholder.text = dt < new DateTime(2023, 8, 22, 8, 30, 0)
-            ? $"Last Updated:\n {formattedDate}\n<color=red>This mod is older than the Hildir Update!</color>"
-            : $"Last Updated:\n {formattedDate}\n<color=green>This mod is newer than the Hildir Update!</color>";
-        ModAgePlugin.ModAgeLogger.LogError($"{packageInfo?.Value.icon_url}");
-        ModAgePlugin.Instance.StartCoroutine(Utilities.LoadSpriteFromURL(packageInfo?.Value.icon_url, (sprite) =>
+        var isNotUpdated = dt < new DateTime(2023, 8, 22, 8, 30, 0);
+        // Instantiate the item without setting the parent
+        if (isNotUpdated)
         {
-            if (sprite != null)
+            RectTransform? item = Object.Instantiate(ModAgePlugin.modAgeUIcomp.Placeholder, ModAgePlugin.modAgeUIcomp.contentList.transform, false);
+            item.gameObject.SetActive(true);
+            item.TryGetComponent<ModAgeUIPlaceholder>(out var placeholder);
+            if (!placeholder || packageInfo == null) return;
+
+            placeholder.PlaceholderModName.text = $"{packageInfo?.Value.name} <color=#CC5500>by {packageInfo?.Value.icon_url?.Split('/').Last().Split('-')[0]}</color>";
+            placeholder.PlaceholderVersionInstalled.text = $"$modage_versioninstalled: {localVer}";
+            placeholder.PlaceholderVersionAvailable.text = $"Version Available: {onlineVer}";
+            placeholder.PlaceholderLastUpdated.text = $"Last Updated: {formattedDate}";
+
+            placeholder.PlaceholderGameUpdatedBool.text = isNotUpdated
+                ? $"Updated for Hildir's Request: <color=#CC5500>No</color>"
+                : $"Updated for Hildir's Request: <color=#2b932e>Yes</color>";
+            placeholder.PlaceholderMoreInfoButton.GetComponentInChildren<TextMeshProUGUI>().text = $"More Information";
+            placeholder.PlaceholderMoreInfoButton.onClick.AddListener(() => Application.OpenURL(packageInfo?.Value.urls?[0]));
+            ModAgePlugin.ModAgeLogger.LogError($"{packageInfo?.Value.icon_url}");
+            ModAgePlugin.Instance.StartCoroutine(Utilities.LoadSpriteFromURL(packageInfo?.Value.icon_url, (sprite) =>
             {
-                modIcon.sprite = sprite;
-            }
-        }));
+                if (sprite != null)
+                {
+                    placeholder.PlaceholderModImage.sprite = sprite;
+                }
+            }));
+        }
     }
 
     internal static System.Version ParseVersion(string? input)

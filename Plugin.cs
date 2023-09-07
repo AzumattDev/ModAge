@@ -21,7 +21,7 @@ namespace ModAge
         public static GameObject modAgeUIFinal = null!;
         public static ModAgeUI modAgeUIcomp = null!;
         public static GameObject modAgeUIObject = null!;
-        internal static ModAgePlugin Instance;
+        internal static ModAgePlugin Instance = null!;
         private Coroutine? modcheckerCoroutine;
         internal static List<PackageInfo>? allPackagesInfo = null;
         internal static Dictionary<string, PreparedPackageInfo>? allPreparedPackagesInfo = null;
@@ -37,6 +37,7 @@ namespace ModAge
             modAgeUIFinal = instantiatedObject;
             modAgeUIcomp = instantiatedObject.GetComponent<ModAgeUI>();
             DontDestroyOnLoad(modAgeUIFinal);
+            ModAgePlugin.modAgeUIFinal.SetActive(false);
             modcheckerCoroutine = StartCoroutine(Utilities.CheckModUpdates());
 
             Assembly assembly = Assembly.GetExecutingAssembly();
