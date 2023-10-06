@@ -143,7 +143,12 @@ public class Utilities
             {
                 if (result != null)
                 {
+                    ModAgePlugin.ModAgeLogger.LogDebug("Got prepared mods from mod-version-check.eu");
                     ModAgePlugin.CanCompareMods = true;
+                }
+                else
+                {
+                    ModAgePlugin.ModAgeLogger.LogError("Error: Could not get prepared mods from mod-version-check.eu");
                 }
             });
         }
@@ -244,10 +249,10 @@ public class Utilities
         DateTime dt = DateTime.Parse(versionInfo.date_created, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
         string formattedDate = dt.ToString("MMMM dd, yyyy hh:mm:ss tt", CultureInfo.InvariantCulture);
 
-        // If dt is less than August 22nd 2023 at 8:30AM, then the mod placeholder text should say it's older than the Hildir Update.
-        inputPlaceholder.text = dt < new DateTime(2023, 8, 22, 8, 30, 0)
-            ? $"Last Updated:\n {formattedDate}\n<color=red>This mod is older than the Hildir Update!</color>"
-            : $"Last Updated:\n {formattedDate}\n<color=green>This mod is newer than the Hildir Update!</color>";
+        // If dt is less than October 5th 2023 at 3:50AM, then the mod placeholder text should say it's older than the 0.217.22 Update.
+        inputPlaceholder.text = dt < new DateTime(2023, 10, 5, 4, 0, 0)
+            ? $"Last Updated:\n {formattedDate}\n<color=red>This mod is older than the 0.217.22 Update!</color>"
+            : $"Last Updated:\n {formattedDate}\n<color=green>This mod is newer than the 0.217.22 Update!</color>";
         ModAgePlugin.Instance.StartCoroutine(Utilities.LoadSpriteFromURL(packageInfo.versions?[0].icon, (sprite) =>
         {
             if (sprite != null)
@@ -264,7 +269,7 @@ public class Utilities
 
         DateTime dt = DateTime.Parse(packageInfo?.Value.updated, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
         string formattedDate = dt.ToString("MMMM dd, yyyy hh:mm:ss tt", CultureInfo.InvariantCulture);
-        var isNotUpdated = dt < new DateTime(2023, 8, 22, 8, 30, 0);
+        var isNotUpdated = dt < new DateTime(2023, 10, 5, 4, 0, 0);
         if (isNotUpdated || onlineVer > localVer)
         {
             RectTransform? item = Object.Instantiate(ModAgePlugin.modAgeUIcomp.Placeholder, ModAgePlugin.modAgeUIcomp.contentList.transform, false);
@@ -287,8 +292,8 @@ public class Utilities
             placeholder.PlaceholderLastUpdated.text = $"$modage_lastupdated: {formattedDate}";
 
             placeholder.PlaceholderGameUpdatedBool.text = isNotUpdated
-                ? $"$modage_gameupdatemessage Hildir's Request: <color=#CC5500>$menu_no</color>"
-                : $"$modage_gameupdatemessage Hildir's Request: <color=#2b932e>$menu_yes</color>";
+                ? $"$modage_gameupdatemessage 0.217.22: <color=#CC5500>$menu_no</color>"
+                : $"$modage_gameupdatemessage 0.217.22: <color=#2b932e>$menu_yes</color>";
             placeholder.PlaceholderMoreInfoButton.GetComponentInChildren<TextMeshProUGUI>().text = $"$modage_moreinformation";
             placeholder.PlaceholderMoreInfoButton.onClick.AddListener(() => Application.OpenURL(packageInfo?.Value.urls?[0]));
             ModAgePlugin.Instance.StartCoroutine(Utilities.LoadSpriteFromURL(packageInfo?.Value.icon_url, (sprite) =>

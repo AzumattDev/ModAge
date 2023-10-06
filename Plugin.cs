@@ -12,7 +12,7 @@ namespace ModAge
     public class ModAgePlugin : BaseUnityPlugin
     {
         internal const string ModName = "ModAge";
-        internal const string ModVersion = "1.0.1";
+        internal const string ModVersion = "1.0.2";
         internal const string Author = "Azumatt";
         private const string ModGUID = Author + "." + ModName;
         private readonly Harmony _harmony = new(ModGUID);
@@ -48,7 +48,15 @@ namespace ModAge
         {
             if (CanCompareMods)
             {
+                ModAgePlugin.ModAgeLogger.LogDebug("Comparing local mods to prepared packages");
                 Utilities.CompareLocalModsToPreparedPackage();
+            }
+            else
+            {
+                ModAgePlugin.ModAgeLogger.LogWarning("CanCompareMods is false, not comparing local mods to prepared packages");
+                
+                // Check again in 5 seconds
+                Invoke(nameof(Utilities.CompareLocalModsToPreparedPackage), 10f);
             }
         }
 

@@ -48,6 +48,17 @@ It will show you what version you have installed, the last time it updated, as w
 <br>
 <br>
 
+# Special Thanks
+
+I would like to say thank you to Margmas for listening to me complain about the Thunderstore API not really being able
+to map mods to it very well. His [ValheimModVersionCheck bot](https://github.com/MSchmoecker/ValheimModVersionCheck) is
+something widely used in most Valheim modding discords.
+He added an [API](https://mod-version-check.eu/api/docs#) so that I might leech off of the information he gathers. It
+bridges the gap where Thunderstore's API
+fell short. Thank you Margmas!
+
+[![https://i.imgur.com/XXP6HCU.png](https://i.imgur.com/XXP6HCU.png)](https://discord.gg/Pb6bVMnFb2)
+
 `Feel free to reach out to me on discord if you need manual download assistance.`
 
 # Author Information
