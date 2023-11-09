@@ -12,7 +12,7 @@ namespace ModAge
     public class ModAgePlugin : BaseUnityPlugin
     {
         internal const string ModName = "ModAge";
-        internal const string ModVersion = "1.0.2";
+        internal const string ModVersion = "1.0.3";
         internal const string Author = "Azumatt";
         private const string ModGUID = Author + "." + ModName;
         private readonly Harmony _harmony = new(ModGUID);

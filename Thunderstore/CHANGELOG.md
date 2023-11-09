@@ -1,5 +1,6 @@
-| `Version` | `Update Notes`                                                        |
-|-----------|-----------------------------------------------------------------------|
-| 1.0.2     | - Update internal date check.                                         |
-| 1.0.1     | - README update. Add credit and thanks where it's due, almost forgot! |
-| 1.0.0     | - Initial Release                                                     |
+| `Version` | `Update Notes`                                                                                                                                                                        |
+|-----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1.0.3     | - Update internal date check to check for 0.217.28 update. 0.217.29 is out, but isn't the "mark" of when mods break. So the previous update is used as that is where some mods break. |
+| 1.0.2     | - Update internal date check.                                                                                                                                                         |
+| 1.0.1     | - README update. Add credit and thanks where it's due, almost forgot!                                                                                                                 |
+| 1.0.0     | - Initial Release                                                                                                                                                                     |
