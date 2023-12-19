@@ -2,9 +2,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Reflection;
+using BepInEx;
 using BepInEx.Bootstrap;
+using LocalizationManager;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -18,11 +21,9 @@ public class Utilities
 {
     public static AssetBundle GetAssetBundleFromResources(string filename)
     {
-        var execAssembly = Assembly.GetExecutingAssembly();
-        var resourceName = execAssembly.GetManifestResourceNames()
-            .Single(str => str.EndsWith(filename));
-
-        using (var stream = execAssembly.GetManifestResourceStream(resourceName))
+        Assembly execAssembly = Assembly.GetExecutingAssembly();
+        string resourceName = execAssembly.GetManifestResourceNames().Single(str => str.EndsWith(filename));
+        using (Stream? stream = execAssembly.GetManifestResourceStream(resourceName))
         {
             return AssetBundle.LoadFromStream(stream);
         }
@@ -30,7 +31,7 @@ public class Utilities
 
     public static void LoadAssets()
     {
-        var assetBundle = GetAssetBundleFromResources("modage");
+        AssetBundle? assetBundle = GetAssetBundleFromResources("modage");
         ModAgePlugin.modAgeUIAsset = assetBundle.LoadAsset<GameObject>("ModAgeUI");
         ModAgePlugin.modAgeUIAsset.AddComponent<Localize>();
         ModAgePlugin.modAgeUIcomp = ModAgePlugin.modAgeUIAsset.GetComponent<ModAgeUI>();
@@ -50,7 +51,7 @@ public class Utilities
 
         if (www.result is UnityWebRequest.Result.ConnectionError or UnityWebRequest.Result.ProtocolError)
         {
-            Debug.LogError("Error while fetching image: " + www.error);
+            ModAgePlugin.ModAgeLogger.LogError("Error while fetching image: " + www.error);
             callback(null!);
         }
         else
@@ -71,7 +72,7 @@ public class Utilities
 
             if (webRequest.result is UnityWebRequest.Result.ConnectionError or UnityWebRequest.Result.ProtocolError)
             {
-                Debug.LogError(webRequest.error);
+                ModAgePlugin.ModAgeLogger.LogError(webRequest.error);
                 callback(null);
             }
             else
@@ -95,7 +96,7 @@ public class Utilities
 
             if (webRequest.result is UnityWebRequest.Result.ConnectionError or UnityWebRequest.Result.ProtocolError)
             {
-                Debug.LogError(webRequest.error);
+                ModAgePlugin.ModAgeLogger.LogError(webRequest.error);
                 callback(null);
             }
             else
@@ -160,8 +161,8 @@ public class Utilities
 
     internal static void CompareLocalModsToThunderstore()
     {
-        var plugins = Chainloader.PluginInfos;
-        foreach (var pluginInfo in plugins.Values)
+        Dictionary<string, PluginInfo>? plugins = Chainloader.PluginInfos;
+        foreach (PluginInfo? pluginInfo in plugins.Values)
         {
             string modNameInThunderstoreFormat = Utilities.ConvertToThunderstoreFormat(pluginInfo.Metadata.Name);
 
@@ -175,7 +176,7 @@ public class Utilities
             {
                 string? latestVersion = matchedMod.versions[0].version_number; // Assuming versions are sorted with latest first.
                 UpdateUI(pluginInfo.Metadata.Name, pluginInfo.Metadata.Version.ToString(), latestVersion, matchedMod);
-                //Debug.Log($"Match found for {modNameInThunderstoreFormat}");
+                //ModAgePlugin.ModAgeLogger.Log($"Match found for {modNameInThunderstoreFormat}");
                 ModAgePlugin.ModAgeLogger.LogDebug($"Match found for {modNameInThunderstoreFormat}");
             }
             else
@@ -189,8 +190,8 @@ public class Utilities
 
     internal static void CompareLocalModsToPreparedPackage()
     {
-        var plugins = Chainloader.PluginInfos;
-        foreach (var pluginInfo in plugins.Values)
+        Dictionary<string, PluginInfo>? plugins = Chainloader.PluginInfos;
+        foreach (PluginInfo? pluginInfo in plugins.Values)
         {
             // Find the mod using the converted name.
             KeyValuePair<string, PreparedPackageInfo>? matchedMod = ModAgePlugin.allPreparedPackagesInfo?.FirstOrDefault(
@@ -228,7 +229,7 @@ public class Utilities
         Button? modLinkButton = Utils.FindChild(rightCol.transform, "ModLinkButton").GetComponent<Button>();
         TextMeshProUGUI? inputPlaceholder = Utils.FindChild(rightCol.transform, "Placeholder").GetComponent<TextMeshProUGUI>();
         Image? modIcon = Utils.FindChild(item.transform, "ModIcon").GetComponent<Image>();
-
+        
         modNameText.text = packageInfo.full_name;
         modVersionText.text = $"Installed ({localVersion})";
         modStatusText.text = onlineVer > localVer
@@ -241,7 +242,7 @@ public class Utilities
         VersionInfo? versionInfo = packageInfo.versions?.FirstOrDefault(x => x.version_number == localVersion) ?? packageInfo.versions?[0];
         if (versionInfo == null)
         {
-            Debug.LogError($"No version info found for {packageInfo.name}");
+            ModAgePlugin.ModAgeLogger.LogError($"No version info found for {packageInfo.name}");
             return;
         }
 
@@ -249,11 +250,11 @@ public class Utilities
         DateTime dt = DateTime.Parse(versionInfo.date_created, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
         string formattedDate = dt.ToString("MMMM dd, yyyy hh:mm:ss tt", CultureInfo.InvariantCulture);
 
-        // If dt is less than November 7th 2023 at 7:00AM, then the mod placeholder text should say it's older than the 0.217.28 Update.
-        inputPlaceholder.text = dt < new DateTime(2023, 11, 7, 7, 0, 0)
-            ? $"Last Updated:\n {formattedDate}\n<color=red>This mod is older than the 0.217.28 Update!</color>"
-            : $"Last Updated:\n {formattedDate}\n<color=green>This mod is newer than the 0.217.28 Update!</color>";
-        ModAgePlugin.Instance.StartCoroutine(Utilities.LoadSpriteFromURL(packageInfo.versions?[0].icon, (sprite) =>
+        // If dt is less than the configured date, then the mod placeholder text should say it's older than the whatever Update.
+        inputPlaceholder.text = dt < new DateTime(ModAgePlugin.yearConfig.Value, ModAgePlugin.monthConfig.Value, ModAgePlugin.dayConfig.Value, ModAgePlugin.hourConfig.Value, ModAgePlugin.minuteConfig.Value, ModAgePlugin.secondConfig.Value)
+            ? $"Last Updated:\n {formattedDate}\n<color=red>This mod is older than the target Update!</color>"
+            : $"Last Updated:\n {formattedDate}\n<color=green>This mod is newer than the target Update!</color>";
+        ModAgePlugin.modcheckerImageCoroutine = ModAgePlugin.Instance.StartCoroutine(Utilities.LoadSpriteFromURL(packageInfo.versions?[0].icon, (sprite) =>
         {
             if (sprite != null)
             {
@@ -268,15 +269,17 @@ public class Utilities
         System.Version onlineVer = ParseVersion(latestVersion);
 
         DateTime dt = DateTime.Parse(packageInfo?.Value.updated, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
-        string formattedDate = dt.ToString("MMMM dd, yyyy hh:mm:ss tt", CultureInfo.InvariantCulture);
-        var isNotUpdated = dt < new DateTime(2023, 11, 7, 7, 0, 0);
-        if (isNotUpdated || onlineVer > localVer)
+        DateTime dtLocal = dt.ToLocalTime();
+        string formattedDate = dtLocal.ToString("MMMM dd, yyyy hh:mm:ss tt", CultureInfo.InvariantCulture);
+        DateTime targetDateLocal = new DateTime(ModAgePlugin.yearConfig.Value, ModAgePlugin.monthConfig.Value, ModAgePlugin.dayConfig.Value, ModAgePlugin.hourConfig.Value, ModAgePlugin.minuteConfig.Value, ModAgePlugin.secondConfig.Value, DateTimeKind.Local);
+        bool isNotUpdated = dtLocal < targetDateLocal;
+        bool shouldShow = ModAgePlugin.showAllMods.Value == ModAgePlugin.Toggle.On || isNotUpdated || onlineVer > localVer;
+        if (shouldShow)
         {
             RectTransform? item = Object.Instantiate(ModAgePlugin.modAgeUIcomp.Placeholder, ModAgePlugin.modAgeUIcomp.contentList.transform, false);
             item.gameObject.SetActive(true);
-            item.TryGetComponent<ModAgeUIPlaceholder>(out var placeholder);
+            item.TryGetComponent<ModAgeUIPlaceholder>(out ModAgeUIPlaceholder? placeholder);
             if (!placeholder || packageInfo == null) return;
-
             placeholder.PlaceholderModName.text = $"{packageInfo?.Value.name} <color=#DB8000>by {packageInfo?.Value.icon_url?.Split('/').Last().Split('-')[0]}</color>";
             if (onlineVer > localVer)
             {
@@ -292,17 +295,26 @@ public class Utilities
             placeholder.PlaceholderLastUpdated.text = $"$modage_lastupdated: {formattedDate}";
 
             placeholder.PlaceholderGameUpdatedBool.text = isNotUpdated
-                ? $"$modage_gameupdatemessage 0.217.28: <color=#CC5500>$menu_no</color>"
-                : $"$modage_gameupdatemessage 0.217.28: <color=#2b932e>$menu_yes</color>";
+                ? $"$modage_gameupdatemessage: <color=#CC5500>$menu_no</color>"
+                : $"$modage_gameupdatemessage: <color=#2b932e>$menu_yes</color>";
             placeholder.PlaceholderMoreInfoButton.GetComponentInChildren<TextMeshProUGUI>().text = $"$modage_moreinformation";
             placeholder.PlaceholderMoreInfoButton.onClick.AddListener(() => Application.OpenURL(packageInfo?.Value.urls?[0]));
-            ModAgePlugin.Instance.StartCoroutine(Utilities.LoadSpriteFromURL(packageInfo?.Value.icon_url, (sprite) =>
+            ModAgePlugin.modcheckerImageCoroutine =  ModAgePlugin.Instance.StartCoroutine(Utilities.LoadSpriteFromURL(packageInfo?.Value.icon_url, (sprite) =>
             {
                 if (sprite != null)
                 {
                     placeholder.PlaceholderModImage.sprite = sprite;
                 }
             }));
+            
+            if (item.gameObject.TryGetComponent<Localize>(out Localize? localize))
+            {
+                localize.RelocalizeAllUponChange();
+            }
+            else
+            {
+                item.gameObject.AddComponent<Localize>().RelocalizeAllUponChange();
+            }
         }
     }
 

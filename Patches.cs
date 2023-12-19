@@ -33,17 +33,17 @@ static class FejdStartupSetupGuiPatch
             if (__instance.m_mainMenu.transform != null && ModAgePlugin.modAgeUIFinal != null)
             {
                 ModAgePlugin.modAgeUIFinal.transform.SetParent(__instance.m_mainMenu.transform, false);
-                var menuList = Utils.FindChild(__instance.m_mainMenu.transform, "MenuEntries");
+                Transform? menuList = Utils.FindChild(__instance.m_mainMenu.transform, "MenuEntries");
                 CreateMenu(menuList);
             }
             else if (__instance.m_mainMenu.transform != null && ModAgePlugin.modAgeUIFinal == null)
             {
-                var instantiatedObject = UnityEngine.Object.Instantiate(ModAgePlugin.modAgeUIAsset);
+                GameObject? instantiatedObject = UnityEngine.Object.Instantiate(ModAgePlugin.modAgeUIAsset);
                 ModAgePlugin.modAgeUIFinal = instantiatedObject;
                 ModAgePlugin.modAgeUIcomp = instantiatedObject.GetComponent<ModAgeUI>();
                 ModAgePlugin.DontDestroyOnLoad(ModAgePlugin.modAgeUIFinal);
                 ModAgePlugin.modAgeUIFinal.transform.SetParent(__instance.m_mainMenu.transform, false);
-                var menuList = Utils.FindChild(__instance.m_mainMenu.transform, "MenuEntries");
+                Transform? menuList = Utils.FindChild(__instance.m_mainMenu.transform, "MenuEntries");
                 FejdStartupSetupGuiPatch.CreateMenu(menuList);
                 Utilities.CompareLocalModsToThunderstore();
             }
@@ -58,13 +58,13 @@ static class FejdStartupSetupGuiPatch
     {
         ModAgePlugin.ModAgeLogger.LogDebug("Instantiating Mod Age");
 
-        var settingsFound = false;
-        var mainMenuButtons = new List<Button>();
+        bool settingsFound = false;
+        List<Button>? mainMenuButtons = new List<Button>();
         for (int i = 0; i < menuList.childCount; ++i)
         {
             if (menuList.GetChild(i).gameObject.activeInHierarchy &&
                 menuList.GetChild(i).name != "ModAge" &&
-                menuList.GetChild(i).TryGetComponent<Button>(out var menuButton))
+                menuList.GetChild(i).TryGetComponent<Button>(out Button? menuButton))
             {
                 mainMenuButtons.Add(menuButton);
             }
@@ -97,7 +97,7 @@ static class FejdStartupSetupGuiPatch
                 Transform left = modSettings.Find("LeftKnot");
                 if (left != null)
                 {
-                    var localPosition = left.localPosition;
+                    Vector3 localPosition = left.localPosition;
                     localPosition = new Vector2(localPosition.x - 10f, localPosition.y);
                     left.localPosition = localPosition;
                 }
@@ -105,7 +105,7 @@ static class FejdStartupSetupGuiPatch
                 Transform right = modSettings.Find("RightKnot");
                 if (right != null)
                 {
-                    var localPosition = right.localPosition;
+                    Vector3 localPosition = right.localPosition;
                     localPosition = new Vector2(localPosition.x + 10f, localPosition.y);
                     right.localPosition = localPosition;
                 }
@@ -115,7 +115,7 @@ static class FejdStartupSetupGuiPatch
             else if (settingsFound)
             {
                 RectTransform rectTransform = menuList.GetChild(i).GetComponent<RectTransform>();
-                var anchoredPosition = rectTransform.anchoredPosition;
+                Vector2 anchoredPosition = rectTransform.anchoredPosition;
                 anchoredPosition = new Vector2(anchoredPosition.x, anchoredPosition.y - 40);
                 rectTransform.anchoredPosition = anchoredPosition;
             }

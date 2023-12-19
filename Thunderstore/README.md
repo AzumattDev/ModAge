@@ -2,10 +2,68 @@
 
 ## A simple `client side mod` that will show you which mods you have that might be out of date, based on age alone.
 
-It will show you what version you have installed, the last time it updated, as well as the latest version available on https://valheim.thunderstore.io/. Mods listed in the UI are potential mods that you might need to remove due to age. Some mods can be older than the latest game update without issues. Keep that in mind and only use this as a guide in finding updates or bugs with your mods.
+It will show you what version you have installed, the last time it updated (in your local time), as well as the latest version available on https://valheim.thunderstore.io/. Mods listed in the UI are potential mods that you might need to remove due to age. Some mods can be older than the latest game update without issues. Keep that in mind and only use this as a guide in finding updates or bugs with your mods.
+
+`Note: The configuration values for this mod should be input based on your local time. The time the mod was uploaded to Thunderstore is in UTC but converted and displayed to you in your local time on the UI. The converted local time is what the configuration values are being compared to. The default configuration values are in EST of shortly after the update. I will change this default configuration value depending on which update breaks the most mods.`  
+
 ---
 
 ![https://i.imgur.com/VgqH93a.png](https://i.imgur.com/VgqH93a.png)
+
+
+## ModAge Plugin Configuration
+
+v1.0.4 configuration file set for EST time zone for update 0.217.38.
+
+Reminder: The configuration values for this mod should be input based on your local time. The default configuration values are in EST of shortly after the update. I will change this default configuration value depending on which update breaks the most mods.
+
+#### ShowAllMods
+- **Description:** Choose whether to show all mods or only the outdated ones.
+- **Type:** Toggle (On/Off)
+- **Default Value:** Off
+- **Acceptable Values:** Off, On
+- **Configuration Line:** `ShowAllMods = Off`
+
+#### YearToTarget
+- **Description:** Set the target year for comparing mod updates.
+- **Type:** Int32
+- **Default Value:** 2023
+- **Configuration Line:** `YearToTarget = 2023`
+
+#### MonthToTarget
+- **Description:** Set the target month for comparing mod updates.
+- **Type:** Int32
+- **Default Value:** 12
+- **Configuration Line:** `MonthToTarget = 12`
+
+#### DayToTarget
+- **Description:** Set the target day for comparing mod updates.
+- **Type:** Int32
+- **Default Value:** 14
+- **Configuration Line:** `DayToTarget = 14`
+
+#### HourToTarget
+- **Description:** Set the target hour for comparing mod updates. It's advised to set this slightly after the expected update time for accuracy.
+- **Type:** Int32
+- **Default Value:** 4
+- **Configuration Line:** `HourToTarget = 4`
+
+#### MinuteToTarget
+- **Description:** Set the target minute for comparing mod updates. It's advised to set this slightly after the expected update time for accuracy.
+- **Type:** Int32
+- **Default Value:** 0
+- **Configuration Line:** `MinuteToTarget = 0`
+
+#### SecondToTarget
+- **Description:** Set the target second for comparing mod updates. It's advised to set this slightly after the expected update time for accuracy.
+- **Type:** Int32
+- **Default Value:** 0
+- **Configuration Line:** `SecondToTarget = 0`
+
+---
+
+**Plugin GUID:** Azumatt.ModAge
+
 
 
 <details>
@@ -60,6 +118,8 @@ fell short. Thank you Margmas!
 [![https://i.imgur.com/XXP6HCU.png](https://i.imgur.com/XXP6HCU.png)](https://discord.gg/Pb6bVMnFb2)
 
 `Feel free to reach out to me on discord if you need manual download assistance.`
+
+Source code can be found here: [https://github.com/AzumattDev/ModAge](https://github.com/AzumattDev/ModAge)
 
 # Author Information
 
