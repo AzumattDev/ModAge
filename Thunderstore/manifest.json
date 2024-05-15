@@ -1,6 +1,6 @@
 {
   "name": "ModAge",
-  "version_number": "1.0.5",
+  "version_number": "1.0.6",
   "website_url": "https://discord.gg/pdHgy6Bsng",
   "description": "A simple client mod that will show you which mods you have that might be out of date, based on age alone. It will show you what version you have installed, last updated time, as well as the latest version available on https://valheim.thunderstore.io/.",
   "dependencies": [

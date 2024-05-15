@@ -16,7 +16,7 @@ namespace ModAge
     public class ModAgePlugin : BaseUnityPlugin
     {
         internal const string ModName = "ModAge";
-        internal const string ModVersion = "1.0.5";
+        internal const string ModVersion = "1.0.6";
         internal const string Author = "Azumatt";
         private const string ModGUID = Author + "." + ModName;
         private readonly Harmony _harmony = new(ModGUID);
@@ -54,13 +54,13 @@ namespace ModAge
             showAllMods.SettingChanged += OnShowAllModsChanged;
             yearConfig = config("1 - General", "YearToTarget", 2024, new ConfigDescription("Year to target. This is the year that the mods will be compared to.", null, new ConfigurationManagerAttributes() { Order = 5 }));
             yearConfig.SettingChanged += OnShowAllModsChanged;
-            monthConfig = config("1 - General", "MonthToTarget", 4, new ConfigDescription("Month to target. This is the month that the mods will be compared to.", null, new ConfigurationManagerAttributes() { Order = 4 }));
+            monthConfig = config("1 - General", "MonthToTarget", 5, new ConfigDescription("Month to target. This is the month that the mods will be compared to.", null, new ConfigurationManagerAttributes() { Order = 4 }));
             monthConfig.SettingChanged += OnShowAllModsChanged;
-            dayConfig = config("1 - General", "DayToTarget", 10, new ConfigDescription("Day to target. This is the day that the mods will be compared to.", null, new ConfigurationManagerAttributes() { Order = 3 }));
+            dayConfig = config("1 - General", "DayToTarget", 14, new ConfigDescription("Day to target. This is the day that the mods will be compared to.", null, new ConfigurationManagerAttributes() { Order = 3 }));
             dayConfig.SettingChanged += OnShowAllModsChanged;
-            hourConfig = config("1 - General", "HourToTarget", 8, new ConfigDescription("Hour to target. It's advised to make this slightly after the update to be the most accurate. This is the hour that the mods will be compared to.", null, new ConfigurationManagerAttributes() { Order = 2 }));
+            hourConfig = config("1 - General", "HourToTarget", 7, new ConfigDescription("Hour to target. It's advised to make this slightly after the update to be the most accurate. This is the hour that the mods will be compared to.", null, new ConfigurationManagerAttributes() { Order = 2 }));
             hourConfig.SettingChanged += OnShowAllModsChanged;
-            minuteConfig = config("1 - General", "MinuteToTarget", 0, new ConfigDescription("Minute to target. This is the minute that the mods will be compared to. It's advised to set this slightly after the expected update time for accuracy.", null, new ConfigurationManagerAttributes() { Order = 1 }));
+            minuteConfig = config("1 - General", "MinuteToTarget", 30, new ConfigDescription("Minute to target. This is the minute that the mods will be compared to. It's advised to set this slightly after the expected update time for accuracy.", null, new ConfigurationManagerAttributes() { Order = 1 }));
             minuteConfig.SettingChanged += OnShowAllModsChanged;
             secondConfig = config("1 - General", "SecondToTarget", 0, new ConfigDescription("Second to target. This is the second that the mods will be compared to. It's advised to set this slightly after the expected update time for accuracy.", null, new ConfigurationManagerAttributes() { Order = 0 }));
             secondConfig.SettingChanged += OnShowAllModsChanged;
